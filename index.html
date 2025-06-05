@@ -1,0 +1,1328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Selenium WebDriver Deep Dive</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            background-color: #f0f2f5;
+            color: #333;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        #sidebar {
+            width: 280px;
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            padding: 20px;
+            box-sizing: border-box;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.3s ease-in-out;
+        }
+
+        #sidebar.closed {
+            transform: translateX(-100%);
+        }
+
+        .sidebar-header {
+            font-size: 1.5em;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: #3498db;
+            display: flex;
+            align-items: center;
+        }
+
+        .sidebar-header-icon {
+            margin-right: 10px;
+        }
+        
+        #sidebar ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            flex-grow: 1;
+        }
+
+        #sidebar li {
+            padding: 12px 15px;
+            margin-bottom: 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+            font-size: 0.95em;
+            display: flex;
+            align-items: center;
+        }
+        
+        #sidebar li .topic-icon {
+            margin-right: 10px;
+            opacity: 0.8;
+        }
+
+        #sidebar li:hover {
+            background-color: #34495e;
+            color: #3498db;
+        }
+
+        #sidebar li.active {
+            background-color: #3498db;
+            color: #fff;
+            font-weight: 600;
+            transform: scale(1.02);
+        }
+        
+        .sidebar-footer {
+            margin-top: auto;
+            padding-top: 15px;
+            border-top: 1px solid #34495e;
+            font-size: 0.8em;
+            text-align: center;
+            color: #95a5a6;
+        }
+
+        #content-display {
+            flex-grow: 1;
+            padding: 30px;
+            box-sizing: border-box;
+            overflow-y: auto;
+            background-color: #ffffff;
+        }
+        
+        .content-header {
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .content-header h1 {
+            font-size: 2.2em;
+            color: #2c3e50;
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+        }
+         .content-header h1 .topic-icon-large {
+            margin-right: 15px;
+            font-size: 1.2em; /* Make icon slightly larger than text */
+            color: #3498db;
+        }
+
+
+        .content-header .short-desc {
+            font-size: 1.1em;
+            color: #555;
+        }
+        
+        .content-header .related-image {
+            display: block; /* Ensure block behavior for layout */
+            width: 100%;
+            max-height: 300px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-top: 15px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .content-block h2 {
+            font-size: 1.8em;
+            color: #2980b9;
+            margin-top: 30px;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 5px;
+        }
+        
+        .content-block h3.subsection-header { /* For subsectionHeader */
+            font-size: 1.5em;
+            color: #16a085;
+            margin-top: 25px;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #1abc9c;
+            padding-bottom: 5px;
+        }
+
+        .content-block h3, .content-block h4 { /* For regular h3 (subheading), h4 */
+            font-size: 1.3em;
+            color: #333;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+         .content-block h4 {
+            font-size: 1.15em;
+        }
+
+        .content-block p {
+            line-height: 1.7;
+            margin-bottom: 15px;
+            color: #444;
+            white-space: pre-line;
+        }
+
+        .content-block ul {
+            list-style: disc;
+            margin-left: 20px;
+            padding-left: 10px;
+            margin-bottom: 15px;
+        }
+        .content-block ul li {
+            margin-bottom: 8px;
+            line-height: 1.6;
+        }
+
+        .code-block {
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            background-color: #2d2d2d;
+        }
+        .code-block .caption {
+            font-size: 0.9em;
+            color: #bbb;
+            background-color: #383838;
+            padding: 8px 15px;
+            border-top-left-radius: 8px;
+            border-top-right-radius: 8px;
+            font-family: 'Roboto Mono', monospace;
+        }
+        .code-block pre {
+            background-color: #2d2d2d;
+            color: #f8f8f2;
+            padding: 15px;
+            overflow-x: auto;
+            border-bottom-left-radius: 8px;
+            border-bottom-right-radius: 8px;
+            margin: 0;
+            font-family: 'Roboto Mono', monospace;
+            font-size: 0.9em;
+            line-height: 1.5;
+        }
+
+        .analogy-block {
+            background-color: #eaf2f8;
+            border-left: 5px solid #3498db;
+            padding: 15px 20px;
+            margin: 20px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .analogy-block h4 {
+            font-size: 1.1em;
+            color: #2980b9;
+            margin-top: 0;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+        }
+        .analogy-block .analogy-icon { /* Corrected class name for consistency */
+            margin-right: 10px;
+            font-size: 1.2em;
+        }
+        .analogy-block p {
+            font-size: 0.95em;
+            color: #2c3e50;
+            margin-bottom: 0;
+             white-space: pre-line;
+        }
+
+        .tip-block, .warning-block {
+            padding: 15px 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            display: flex;
+            align-items: flex-start;
+        }
+        .tip-block {
+            background-color: #e8f5e9; /* Light green */
+            border-left: 5px solid #4caf50; /* Green */
+        }
+        .warning-block {
+            background-color: #ffebee; /* Light red */
+            border-left: 5px solid #f44336; /* Red */
+        }
+        .tip-block .block-icon, .warning-block .block-icon {
+            margin-right: 12px;
+            font-size: 1.3em;
+            flex-shrink: 0;
+        }
+        .tip-block .block-icon { color: #4caf50; }
+        .warning-block .block-icon { color: #f44336; }
+        
+        .tip-block p, .warning-block p {
+            margin: 0;
+            font-size: 0.95em;
+        }
+         .tip-block p strong, .warning-block p strong {
+            font-weight: 600;
+        }
+        .tip-block p { color: #2e7d32; } /* Darker green text */
+        .warning-block p { color: #c62828; } /* Darker red text */
+        
+        .content-footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #e0e0e0;
+            text-align: center;
+            font-size: 0.9em;
+            color: #777;
+        }
+        .content-footer a {
+            color: #3498db;
+            text-decoration: none;
+        }
+        .content-footer a:hover {
+            text-decoration: underline;
+        }
+
+        .sidebar-toggle {
+            display: none; /* Hidden by default, shown via media query */
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            z-index: 1001;
+            background-color: #2c3e50;
+            color: white;
+            border: none;
+            padding: 10px 12px;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            font-size: 1.2em;
+        }
+        
+        .architecture-diagram-placeholder, .gif-placeholder {
+            border: 2px dashed #3498db;
+            padding: 15px;
+            margin: 20px 0;
+            background-color: #f8f9fa;
+            text-align: center;
+            font-style: italic;
+            color: #555;
+        }
+        .architecture-diagram-placeholder p, .gif-placeholder p {
+            margin-bottom: 10px !important; /* Override default p margin */
+        }
+        .architecture-diagram-placeholder strong, .gif-placeholder strong {
+            color: #2c3e50;
+        }
+        .gif-placeholder img {
+            border:1px solid #ccc; 
+            border-radius:4px; 
+            max-width:100%;
+            margin-bottom: 10px;
+        }
+
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                flex-direction: column;
+            }
+            #sidebar {
+                position: fixed;
+                left: 0;
+                top: 0;
+                bottom: 0;
+                z-index: 1000;
+                height: 100vh;
+                transform: translateX(-100%); /* Start closed */
+            }
+            #sidebar.open {
+                transform: translateX(0);
+            }
+            .sidebar-toggle {
+                display: block;
+            }
+            #content-display {
+                width: 100%;
+                padding-left: 15px; /* Adjust if toggle button overlaps */
+                padding-right: 15px;
+            }
+            .sidebar-toggle.sidebar-open { /* Style to move toggle button when sidebar is open */
+                left: 295px; /* sidebar width + some padding */
+            }
+        }
+    </style>
+<link rel="stylesheet" href="/index.css">
+</head>
+<body>
+
+    <button id="sidebarToggle" class="sidebar-toggle" aria-expanded="false" aria-controls="sidebar" aria-label="Open navigation menu">☰</button>
+
+    <aside id="sidebar">
+        <div class="sidebar-header">
+            <span class="sidebar-header-icon">📖</span> Selenium Guide
+        </div>
+        <ul id="topic-list">
+            <!-- Topics will be populated by JavaScript -->
+        </ul>
+        <div class="sidebar-footer">
+            &copy; <span id="currentYear"></span> Selenium Deep Dive
+        </div>
+    </aside>
+
+    <main id="content-display">
+        <!-- Content will be populated by JavaScript -->
+    </main>
+
+    <script>
+        const seleniumTopics = [
+          {
+            id: 'intro',
+            title: 'Introduction to Selenium',
+            icon: '🌍',
+            shortDescription: 'Understanding what Selenium is and its different components. A brief introduction.',
+            relatedImage: 'https://picsum.photos/seed/softwareautomation/800/300',
+            contentBlocks: [
+              { type: 'paragraph', content: 'Selenium is a robust open-source framework for automating web browsers. It empowers developers and testers to write scripts that interact with web applications just like a human user would.' },
+              { type: 'paragraph', content: 'Its primary use is to automate web application testing, but it can also be employed for web scraping (extracting data), automating web-based repetitive tasks, and more.' },
+              { type: 'heading', level: 2, content: 'The Selenium Suite' },
+              { type: 'list', content: [
+                'Selenium WebDriver: The core of Selenium. It provides APIs for browser automation. This is the main focus of this guide.',
+                'Selenium IDE (Integrated Development Environment): A browser extension (Chrome, Firefox, Edge) for recording and playing back user interactions. Good for quick script creation and learning.',
+                'Selenium Grid: Allows running tests on multiple machines and browsers simultaneously, significantly speeding up test execution.',
+                'Selenium RC (Remote Control) - Deprecated: The predecessor to WebDriver. While historically significant, it is no longer actively used or recommended.'
+              ]},
+              { type: 'analogy', analogy: {
+                  title: 'Real-world Analogy: Selenium Suite as a Toolbox',
+                  icon: '💡',
+                  description: 'Think of Selenium as a versatile toolbox for interacting with websites. WebDriver is like a set of precise remote controls for different vehicles (browsers). Selenium IDE is like a simple tape recorder for quickly recording and replaying actions. Selenium Grid is like a dispatch center managing a fleet of vehicles to perform many tasks at once.'
+              }},
+              { type: 'tip', content: 'Focus on Selenium WebDriver for robust and scalable automation. Selenium IDE can be a good starting point for beginners.'}
+            ],
+          },
+          {
+            id: 'versions',
+            title: 'Selenium Versions',
+            icon: '🕰️',
+            shortDescription: 'A brief history and evolution of Selenium versions.',
+            relatedImage: 'https://picsum.photos/seed/softwaretimeline/800/300',
+            contentBlocks: [
+              { type: 'paragraph', content: 'Selenium has evolved significantly since its inception. Understanding its version history helps appreciate its current capabilities.' },
+              { type: 'list', content: [
+                'Selenium 1 (Selenium RC): The original version, based on injecting JavaScript into the browser.',
+                'Selenium 2 (WebDriver Merge): A major milestone. Selenium WebDriver was merged with Selenium RC, offering a more direct and stable way to control browsers. This became the de facto standard.',
+                'Selenium 3: Focused on stability and adherence to the W3C WebDriver specification, which standardized browser automation protocols. Deprecated the original Selenium RC.',
+                'Selenium 4: Introduced significant improvements like relative locators, full-page screenshots, better window/tab management, and powerful Chrome DevTools Protocol (CDP) integration. It fully embraces the W3C WebDriver protocol.',
+                'Selenium 4.x (Ongoing): Continues to add more features like BiDi (Bidirectional) APIs, enabling deeper interaction and better observability with the browser.'
+              ]},
+              { type: 'analogy', analogy: {
+                  title: 'Real-world Analogy: Evolution of a Car',
+                  icon: '💡',
+                  description: 'Selenium 1 was like an early automobile – functional but with limitations. Selenium 2 was a major engine upgrade (WebDriver integration). Selenium 3 refined the design for better performance and safety (W3C standard). Selenium 4 is like a modern car with advanced features like GPS (relative locators), better dashboards (CDP), and improved handling (BiDi APIs).'
+              }},
+              { type: 'tip', content: 'Always try to use the latest stable version of Selenium for new features, bug fixes, and better browser compatibility.'}
+            ],
+          },
+          {
+            id: 'webdriver',
+            title: 'Selenium WebDriver Deep Dive',
+            icon: '🔬',
+            shortDescription: 'Core concepts, architecture, and setup of Selenium WebDriver.',
+            relatedImage: 'https://picsum.photos/seed/drivercommunication/800/300',
+            contentBlocks: [
+              { type: 'paragraph', content: 'Selenium WebDriver is the heart of modern Selenium. It is an API and protocol that lets you programmatically control web browsers. Essentially, you can make the browser do things through code, just as a human would.' },
+              { type: 'heading', level: 2, content: 'What is WebDriver?' },
+              { type: 'list', content: [
+                'An Interface: WebDriver provides a common interface for interacting with different browsers.',
+                'Language Bindings: Client libraries (Java, Python, C#, Ruby, JavaScript) implement this interface, allowing you to write scripts in your preferred language.',
+                'Browser Drivers: Each browser (Chrome, Firefox, Edge, Safari) has its own WebDriver implementation (e.g., ChromeDriver, GeckoDriver) that acts as a bridge between your script and the browser.'
+              ]},
+              { type: 'heading', level: 2, content: 'WebDriver Architecture' },
+              { type: 'html', content: `
+                <div class="architecture-diagram-placeholder">
+                    <p><strong>WebDriver Architecture Flow (Conceptual Diagram)</strong></p>
+                    <img src="https://picsum.photos/seed/apiflowchart/600/250" alt="WebDriver Architecture Flow Diagram Placeholder" style="border:1px solid #ccc; border-radius:4px; max-width:100%; margin-bottom:10px;">
+                    <p><small><em>Ideally, this would be an animated diagram showing the data flow from Script to Browser and back.</em></small></p>
+                    <p>1. <strong>Your Selenium Script</strong> (e.g., C# code)</p>
+                    <p style="text-align:center; margin:0;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;⬇️</p>
+                    <p>2. <strong>Client Library / Language Bindings</strong> (Selenium library for your language)</p>
+                    <p style="text-align:center; margin:0;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;⬇️ <em>(Sends commands as JSON via W3C Protocol)</em></p>
+                    <p>3. <strong>Browser Driver</strong> (e.g., ChromeDriver.exe, GeckoDriver.exe)</p>
+                    <p style="text-align:center; margin:0;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;⬇️ <em>(Issues native commands to the browser)</em></p>
+                    <p>4. <strong>Browser</strong> (e.g., Chrome, Firefox)</p>
+                    <p style="text-align:center; margin:0;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;⬇️ <em>(Performs the action, e.g., clicks a button)</em></p>
+                    <p>5. <strong>Response</strong> (Result from Browser to Browser Driver, then to Client Library, and finally to your Script)</p>
+                </div>
+              `},
+              { type: 'paragraph', content: 'The communication flow is generally as follows:' },
+              { type: 'list', content: [
+                'Your Selenium Script (Client Libraries): You write commands using Selenium APIs in your chosen programming language (e.g., C#).',
+                'JSON Wire Protocol / W3C WebDriver Protocol: Commands are serialized (usually into JSON format) and sent over HTTP to the Browser Driver. This is a standardized way of communicating.',
+                'Browser Driver: Receives the commands, interprets them, and instructs the browser to perform actions. Each browser has its specific driver (like ChromeDriver for Chrome).',
+                'Browser: Performs the actions (e.g., clicks a button, types text). This is where the actual work happens.',
+                'Response: The Browser Driver sends the result of the command back to your script. This tells you if the command was successful.'
+              ]},
+              { type: 'analogy', analogy: {
+                title: 'Real-world Analogy: Ordering Food at a Restaurant',
+                icon: '💡',
+                description: '1. You (Your Script) decide what to eat (the command).\n2. You tell the Waiter (Client Library) your order in your language.\n3. The Waiter writes it down on an Order Ticket (JSON/W3C Protocol) in a standard format for the kitchen.\n4. The Waiter gives the ticket to the Chef (Browser Driver).\n5. The Chef prepares the food (Browser Action).\n6. The Waiter brings the food back to you (Response/Result).'
+              }},
+              { type: 'heading', level: 2, content: 'Setting Up WebDriver' },
+              { type: 'list', content: [
+                'Install Language Bindings: Add the Selenium library/package for your chosen programming language (e.g., `Selenium.WebDriver` NuGet package for C#).',
+                'Download Browser Drivers: Get the specific driver executable for the browser(s) you want to automate (e.g., ChromeDriver for Chrome, GeckoDriver for Firefox). Ensure the driver version matches your browser version. (Often, NuGet packages like `Selenium.WebDriver.ChromeDriver` handle this automatically).',
+                'Configure Driver Path: Ensure your script can find the driver executable (e.g., by placing it in your system PATH, in the project\'s output directory, or specifying its path in code).'
+              ]},
+              { type: 'code', codeExample: {
+                language: 'csharp',
+                caption: 'Basic WebDriver Initialization (C# Example)',
+                code: 'using OpenQA.Selenium; // Provides core Selenium interfaces and classes like IWebDriver, By, etc.\nusing OpenQA.Selenium.Chrome; // Provides the ChromeDriver class for controlling Chrome browser.\nusing System; // Provides basic .NET framework utilities like Console.WriteLine.\n\n// Ensure ChromeDriver.exe is in your PATH or in your project\'s output directory (NuGet packages often handle this).\n// Or, specify driver directory:\n// var chromeDriverService = ChromeDriverService.CreateDefaultService(@"C:\\path\\to\\driver_directory");\n// IWebDriver driver = new ChromeDriver(chromeDriverService);\n\nIWebDriver driver = new ChromeDriver(); // Or FirefoxDriver(), EdgeDriver(), etc.\ndriver.Navigate().GoToUrl("https://www.example.com");\nConsole.WriteLine("Page title is: " + driver.Title); // .Title is a property that gets the page title\ndriver.Quit(); // Closes all browser windows and ends the WebDriver session'
+              }},
+              { type: 'tip', content: 'Using NuGet packages like `Selenium.WebDriver.ChromeDriver` in C# often automates the driver download and placement. This makes life easier!'}
+            ],
+          },
+          {
+            id: 'locators',
+            title: 'Locating Elements',
+            icon: '🔍',
+            shortDescription: 'Strategies for finding web elements on a page.',
+            relatedImage: 'https://picsum.photos/seed/uielementfinder/800/300',
+            contentBlocks: [
+              { type: 'paragraph', content: 'To interact with a web page, Selenium first needs to find the elements (buttons, text fields, links, etc.). This is done using various locator strategies. Just like finding a specific person in a crowd, you need to use the right method.' },
+              { type: 'heading', level: 2, content: 'Common Locator Strategies' },
+              {
+                type: 'list',
+                content: [
+                  'By ID: `driver.FindElement(By.Id("elementId"))` - Finds an element by its unique `id` attribute. Fastest and most reliable if available.',
+                  'By Name: `driver.FindElement(By.Name("elementName"))` - Finds an element by its `name` attribute.',
+                  'By Class Name: `driver.FindElement(By.ClassName("elementClassName"))` - Finds elements by their `class` attribute. Can return multiple elements.',
+                  'By Tag Name: `driver.FindElement(By.TagName("tagName"))` - Finds elements by their HTML tag (e.g., `input`, `a`, `div`).',
+                  'By Link Text: `driver.FindElement(By.LinkText("Exact Link Text"))` - Finds an anchor (`<a>`) element by its exact visible text.',
+                  'By Partial Link Text: `driver.FindElement(By.PartialLinkText("Partial Text"))` - Finds an anchor (`<a>`) element by a partial match of its visible text.',
+                  'By CSS Selector: `driver.FindElement(By.CssSelector("cssExpression"))` - Powerful and performant, uses CSS selector syntax (e.g., `#id`, `.class`, `tag[attribute=value]`).',
+                  'By XPath: `driver.FindElement(By.XPath("xpathExpression"))` - Very flexible, allows navigating the HTML structure (DOM). Can be slower than CSS selectors if not written carefully.'
+                ]
+              },
+              { type: 'analogy', analogy: {
+                title: 'Real-world Analogy: Finding a Person in a Building (Guiding a Rickshaw Driver)',
+                icon: '💡',
+                description: '- ID: Like a national ID number – most unique and direct. If the rickshaw driver knows the exact house number (ID), they\'ll reach it instantly.\n- Name: Like looking for "Ali Ahmed" (there might be more than one, but often sufficient for forms). Telling the rickshaw driver "Ali Ahmed\'s house," if he\'s known in the neighborhood, it might be found.\n- Class Name: Like finding all people wearing a "Visitor" badge (a category). Like saying, "Those houses in the colony with a \'For Rent\' sign."\n- Tag Name: Like finding all "chairs" or "tables" (types of items). Like saying, "all shops" (but which shop?).\n- Link Text: Like finding the room labeled "Conference Room A." Like, "The street with the \'Bakery\' sign."\n- CSS Selector: Detailed instructions, e.g., "The red chair in the corner office on the third floor." Like, "Go straight from the intersection, take the second left, then the house with the green door."\n- XPath: A path through the building, e.g., "Go to the third floor, take the second corridor on the left, it\'s the third door." Like, "Passing through the market, first the cloth shop, then the sweet shop, after that the paan shop, that one." XPath is very powerful but can take time if the address isn\'t straightforward.'
+              }},
+              { type: 'code', codeExample: {
+                language: 'csharp',
+                caption: 'Finding elements by ID and CSS Selector (C#)',
+                code: 'using OpenQA.Selenium; // Provides IWebDriver, By, IWebElement, etc.\n\nIWebElement usernameFieldById = driver.FindElement(By.Id("username"));\nIWebElement passwordFieldByCss = driver.FindElement(By.CssSelector("input[name=\'password\']"));'
+              }},
+              { type: 'tip', content: 'Prefer ID, Name, and CSS Selectors for performance and readability. Use XPath when other locators are not feasible or for complex DOM traversals. Choosing the right locator is like giving the rickshaw driver the right address – it saves time!'},
+              { type: 'heading', level: 2, content: 'Finding Multiple Elements' },
+              { type: 'paragraph', content: 'To find all elements matching a locator, use `FindElements()`:'},
+              { type: 'code', codeExample: {
+                language: 'csharp',
+                caption: 'Finding Multiple Elements (C#)',
+                code: 'using OpenQA.Selenium; // Provides IWebDriver, By, IWebElement, etc.\nusing System.Collections.Generic; // For IList<T>, which stores a list of elements.\nusing System; // For utilities like Console.WriteLine.\n\nIList<IWebElement> allLinks = driver.FindElements(By.TagName("a"));\nforeach (IWebElement link in allLinks)\n{\n    Console.WriteLine(link.Text); // .Text property gets the visible text of the element\n}'
+              }},
+              { type: 'warning', content: '`FindElement()` throws a `NoSuchElementException` if no element is found (reports an error). `FindElements()` returns an empty list if no elements are found (doesn\'t report an error, just says nothing was found).'}
+            ],
+          },
+          {
+            id: 'interactions',
+            title: 'Interacting with Elements',
+            icon: '👆',
+            shortDescription: 'Performing actions like clicking, typing, and getting text.',
+            relatedImage: 'https://picsum.photos/seed/mouseclickcode/800/300',
+            contentBlocks: [
+              { type: 'paragraph', content: 'Once an element is found, you can perform various actions on it, much like you would use a mouse or keyboard on a computer.' },
+              { type: 'heading', level: 2, content: 'Common IWebElement Methods and Properties' },
+              { type: 'list', content: [
+                '`Click()`: Clicks the element (e.g., button, link, checkbox).',
+                '`SendKeys(string textToSend)`: Types text into an input field or textarea. Can also simulate keyboard key presses.',
+                '`Text` (Property): Gets the visible inner text of the element.',
+                '`GetAttribute(string attributeName)`: Gets the value of a given HTML attribute (e.g., `href`, `value`, `class`).',
+                '`Selected` (Property): Checks if a checkbox or radio button is selected. Returns a `bool` (true/false).',
+                '`Enabled` (Property): Checks if an element is enabled (interactable). Returns a `bool`.',
+                '`Displayed` (Property): Checks if an element is visible on the page. Returns a `bool`.',
+                '`Submit()`: Submits a form. Can be called on any element within the form.',
+                '`Clear()`: Clears text from an input field or textarea.'
+              ]},
+              { type: 'analogy', analogy: {
+                title: 'Real-world Analogy: Using a Remote Control',
+                icon: '💡',
+                description: '- Click(): Pressing a button on the remote.\n- SendKeys(): Typing numbers or letters using the remote\'s keypad.\n- Text (property): Reading the text displayed on the TV screen (e.g., channel name).\n- GetAttribute(): Checking a property of the remote itself, like its model number printed on the back.\n- Selected (property): Checking if the "Mute" button is currently active.\n- Enabled (property): Checking if a button on the remote is pressable (not broken).\n- Displayed (property): Checking if you can see the remote (not hidden under a cushion).\n- Clear(): Deleting pre-typed text in a search bar on the TV.'
+              }},
+              { type: 'code', codeExample: {
+                language: 'csharp',
+                caption: 'Interacting with form elements (C#)',
+                code: 'using OpenQA.Selenium; // Provides IWebDriver, By, IWebElement, etc.\nusing System; // For utilities like Console.WriteLine.\n\nIWebElement emailInput = driver.FindElement(By.Id("email"));\nemailInput.SendKeys("test@example.com");\n\nIWebElement subscribeCheckbox = driver.FindElement(By.Id("subscribe"));\nif (!subscribeCheckbox.Selected) // .Selected is a property\n{\n    subscribeCheckbox.Click();\n}\n\nIWebElement submitButton = driver.FindElement(By.Id("submitBtn"));\nsubmitButton.Click();\n\nstring confirmationMessage = driver.FindElement(By.Id("message")).Text; // .Text is a property\nConsole.WriteLine("Confirmation: " + confirmationMessage);'
+              }},
+              { type: 'tip', content: 'Always ensure an element is present and interactable (visible, enabled) before performing actions. Waits (covered in the next section) are crucial for this. Patience is a virtue!'}
+            ],
+          },
+          {
+            id: 'waits',
+            title: 'Selenium Waits',
+            icon: '⏳',
+            shortDescription: 'Synchronizing your script with the browser.',
+            relatedImage: 'https://picsum.photos/seed/progressbarconcept/800/300',
+            contentBlocks: [
+              { type: 'paragraph', content: 'Web applications are dynamic. Elements can load asynchronously or appear after certain actions. Waits are essential to prevent scripts from failing because an element is not yet available. It\'s better to wait a bit than to make a mistake.' },
+              { type: 'html', content: `
+                <div class="gif-placeholder">
+                  <p><strong>Visualizing Waits</strong></p>
+                  <img src="https://picsum.photos/seed/loadinganimationconcept/400/200" alt="Dynamic wait GIF placeholder">
+                  <p><small><em>Imagine an animated GIF here showing a script pausing and then proceeding once a dynamic UI element appears or becomes active.</em></small></p>
+                </div>
+              `},
+              { type: 'heading', level: 2, content: 'Types of Waits' },
+              { type: 'subsectionHeader', content: '1. Implicit Wait' },
+              { type: 'paragraph', content: 'Sets a global timeout for `FindElement()` and `FindElements()`. If an element is not immediately found, WebDriver will keep trying to find it for the specified duration before throwing a `NoSuchElementException`.' },
+              { type: 'code', codeExample: {
+                language: 'csharp',
+                caption: 'Implicit Wait (C#)',
+                code: 'using OpenQA.Selenium; // Provides IWebDriver, etc.\nusing System; // Provides TimeSpan.\n\ndriver.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(10);\n// Now, any FindElement call will wait up to 10 seconds.'
+              }},
+              { type: 'analogy', analogy: {
+                title: 'Analogy: Waiting for a Friend (Like Sending a Child to the Store)',
+                icon: '💡',
+                description: 'You tell your friend (or a child going to the store), "If I\'m not there when you arrive, wait for me for 10 minutes." This rule applies to every meeting. It\'s simple, but if the shopkeeper is always free, the child still waits a bit, perhaps unnecessarily.'
+              }},
+              { type: 'warning', content: 'While simple, implicit waits can slow down tests if overused or set too high, as they apply globally. They also don\'t wait for conditions like visibility or clickability.'},
+
+              { type: 'subsectionHeader', content: '2. Explicit Wait (WebDriverWait)' },
+              { type: 'paragraph', content: 'Waits for a specific condition to be met on an element or the page, up to a maximum timeout. More flexible and preferred for specific conditions.' },
+              { type: 'paragraph', content: 'Uses `ExpectedConditions` with `WebDriverWait` (often from the `SeleniumExtras.WaitHelpers` NuGet package for more comprehensive conditions, or built-in conditions).' },
+              { type: 'code', codeExample: {
+                language: 'csharp',
+                caption: 'Explicit Wait Example (C#)',
+                code: 'using OpenQA.Selenium; // Provides IWebDriver, By, etc.\nusing OpenQA.Selenium.Support.UI; // Provides WebDriverWait and ExpectedConditions.\nusing System; // Provides TimeSpan.\n// For more ExpectedConditions, consider adding the NuGet package SeleniumExtras.WaitHelpers\n// using SeleniumExtras.WaitHelpers;\n\nWebDriverWait wait = new WebDriverWait(driver, TimeSpan.FromSeconds(10));\nIWebElement element = wait.Until(ExpectedConditions.ElementIsVisible(By.Id("dynamicElement")));\nelement.Click();\n\n// Other common ExpectedConditions (some may require SeleniumExtras.WaitHelpers):\n// - ElementToBeClickable(By locator)\n// - ElementExists(By locator)\n// - AlertIsPresent()\n// - TextToBePresentInElementLocated(By locator, string text)'
+              }},
+              { type: 'analogy', analogy: {
+                title: 'Analogy: Waiting for a Specific Bus (Like Waiting for a Specific Package)',
+                icon: '💡',
+                description: 'You go to the bus stop and specifically wait for Bus #42. You will only wait for that bus for 30 minutes (timeout) before giving up (condition). You are not waiting for every bus, just your specific one.'
+              }},
+
+              { type: 'subsectionHeader', content: '3. Fluent Wait' },
+              { type: 'paragraph', content: 'An advanced type of explicit wait. Allows configuration of polling frequency (how often to check) and ignoring specific types of exceptions during the wait.' },
+              { type: 'code', codeExample: {
+                language: 'csharp',
+                caption: 'Fluent Wait Example (C#)',
+                code: 'using OpenQA.Selenium; // Provides IWebDriver, By, etc.\nusing OpenQA.Selenium.Support.UI; // Provides DefaultWait (base class for FluentWait).\nusing System; // Provides TimeSpan.\n\nDefaultWait<IWebDriver> fluentWait = new DefaultWait<IWebDriver>(driver)\n{\n    Timeout = TimeSpan.FromSeconds(30),\n    PollingInterval = TimeSpan.FromSeconds(5) // Will check every 5 seconds\n};\nfluentWait.IgnoreExceptionTypes(typeof(NoSuchElementException)); // Don\'t error out immediately if element not found, keep trying\n\nIWebElement element = fluentWait.Until(d => {\n    // This is a custom condition, you can write your own\n    return d.FindElement(By.Id("veryDynamicElement"));\n});\nelement.Click();'
+              }},
+              { type: 'analogy', analogy: {
+                title: 'Analogy: Persistent Caller',
+                icon: '💡',
+                description: 'You are trying to call a busy line. You decide to try every 1 minute (polling) for the next 15 minutes (timeout). If you get a "busy signal" (ignored exception), you just hang up and try again. You only give up when 15 minutes pass or the call connects.'
+              }},
+              { type: 'tip', content: 'Explicit waits are generally the most reliable and recommended approach for handling dynamic content. Use FluentWait for complex scenarios where fine-grained control is needed. It\'s better to wait for something specific than to wait blindly.'}
+            ],
+          },
+           {
+            id: 'screenshots',
+            title: 'Taking Screenshots',
+            icon: '📸',
+            shortDescription: 'Capturing images of the browser window.',
+            relatedImage: 'https://picsum.photos/seed/uicapturetool/800/300',
+            contentBlocks: [
+              { type: 'paragraph', content: 'Selenium allows you to take screenshots of the current browser window or specific web elements. This is very useful for debugging, reporting test failures, or visual verification. It\'s like gathering evidence!' },
+              { type: 'heading', level: 2, content: 'Taking a Full Page Screenshot' },
+              { type: 'paragraph', content: 'The `ITakesScreenshot` interface provides the `GetScreenshot()` method.' },
+              { type: 'code', codeExample: {
+                language: 'csharp',
+                caption: 'Full Page Screenshot (C#)',
+                code: 'using OpenQA.Selenium; // Provides ITakesScreenshot, Screenshot, ScreenshotImageFormat.\nusing System; // Provides Exception, Console.\nusing System.IO; // Provides Path, Directory (if creating directory is needed).\n\n// ... inside your test method\ntry\n{\n    // Example: Ensure directory exists\n    // string screenshotDir = Path.Combine(Directory.GetCurrentDirectory(), "screenshots");\n    // Directory.CreateDirectory(screenshotDir);\n    // string filePath = Path.Combine(screenshotDir, "homepage.png");\n\n    Screenshot ss = ((ITakesScreenshot)driver).GetScreenshot();\n    // Path is relative to the execution directory\n    // Ensure a folder named "screenshots" exists in your project or create it first.\n    string screenshotsFolder = "./screenshots";\n    if (!Directory.Exists(screenshotsFolder)) { Directory.CreateDirectory(screenshotsFolder); }\n    ss.SaveAsFile(Path.Combine(screenshotsFolder, "homepage.png"), ScreenshotImageFormat.Png);\n    Console.WriteLine("Screenshot taken and saved to ./screenshots/homepage.png");\n}\ncatch (Exception e)\n{\n    Console.Error.WriteLine("Error taking screenshot: " + e.Message);\n}'
+              }},
+              { type: 'analogy', analogy: {
+                title: 'Analogy: Taking a Picture',
+                icon: '💡',
+                description: 'Like using a camera to take a picture of what\'s currently displayed on your computer screen, or a specific document on your desk.'
+              }},
+              { type: 'heading', level: 2, content: 'Taking an Element Screenshot (Selenium 4+)' },
+              { type: 'paragraph', content: 'In Selenium 4 and later, `IWebElement` itself provides a `GetScreenshot()` method.' },
+              { type: 'code', codeExample: {
+                language: 'csharp',
+                caption: 'Element Screenshot (C# - Selenium 4+)',
+                code: 'using OpenQA.Selenium; // Provides IWebElement, Screenshot, ScreenshotImageFormat.\nusing System; // Provides Exception, Console.\nusing System.IO; // Provides Path, Directory (if creating directory is needed).\n\nIWebElement logo = driver.FindElement(By.Id("logo"));\ntry\n{\n    // Ensure a folder named "screenshots" exists in your project or create it first.\n    string screenshotsFolder = "./screenshots";\n    if (!Directory.Exists(screenshotsFolder)) { Directory.CreateDirectory(screenshotsFolder); }\n\n    Screenshot logoScreenshot = logo.GetScreenshot(); // IWebElement has GetScreenshot() in Selenium 4+\n    logoScreenshot.SaveAsFile(Path.Combine(screenshotsFolder, "logo.png"), ScreenshotImageFormat.Png);\n    Console.WriteLine("Logo screenshot saved.");\n}\ncatch (Exception e)\n{\n    Console.Error.WriteLine("Error taking element screenshot: " + e.Message);\n}'
+              }},
+              { type: 'tip', content: 'Organize your screenshots with meaningful names, possibly including timestamps or test case names, to easily identify them. Cleanliness is next to godliness!'},
+              { type: 'warning', content: 'Ensure you have the necessary permissions to write files to the specified screenshot directory.'}
+            ],
+          },
+          {
+            id: 'dropdowns',
+            title: 'Handling Dropdowns (SelectElement Class)',
+            icon: '🔽',
+            shortDescription: 'Interacting with HTML <select> elements.',
+            relatedImage: 'https://picsum.photos/seed/selectmenuui/800/300',
+            contentBlocks: [
+              { type: 'paragraph', content: 'HTML dropdowns (created with `<select>` tags) are handled in a special way in Selenium using the `SelectElement` class. This is slightly different from regular input fields.' },
+              { type: 'heading', level: 2, content: 'Using the SelectElement Class' },
+              { type: 'paragraph', content: 'First, locate the `<select>` IWebElement, then create a `SelectElement` object.' },
+              { type: 'code', codeExample: {
+                language: 'csharp',
+                caption: 'Initializing SelectElement Object (C#)',
+                code: 'using OpenQA.Selenium; // Provides IWebElement, By.\nusing OpenQA.Selenium.Support.UI; // Provides SelectElement class.\n\nIWebElement countryDropdownElement = driver.FindElement(By.Id("country"));\nSelectElement countrySelect = new SelectElement(countryDropdownElement);'
+              }},
+              { type: 'html', content: `
+                <div class="gif-placeholder">
+                  <p><strong>Dropdown Interaction Example</strong></p>
+                  <img src="https://picsum.photos/seed/dropdownanimation/400/200" alt="Dropdown interaction GIF placeholder">
+                  <p><small><em>Imagine this is an animated GIF showing a dropdown menu opening, an option being highlighted, and then selected.</em></small></p>
+                </div>
+              `},
+              { type: 'heading', level: 2, content: 'Selecting Options' },
+              { type: 'list', content: [
+                '`SelectByText(string text)`: Selects an option by its visible text.',
+                '`SelectByValue(string value)`: Selects an option by its `value` attribute.',
+                '`SelectByIndex(int index)`: Selects an option by its zero-based index.'
+              ]},
+              { type: 'code', codeExample: {
+                language: 'csharp',
+                caption: 'Selecting Options (C#)',
+                code: 'using OpenQA.Selenium.Support.UI; // Provides SelectElement (if not already included).\n\n// countrySelect should be initialized already\ncountrySelect.SelectByText("United States");\n// or\ncountrySelect.SelectByValue("US");\n// or\ncountrySelect.SelectByIndex(1); // Assuming "United States" is the second option (index starts at 0)'
+              }},
+              { type: 'heading', level: 2, content: 'Getting Selected Options and All Options' },
+              { type: 'list', content: [
+                '`SelectedOption` (Property): Returns the first selected option as an IWebElement.',
+                '`AllSelectedOptions` (Property): Returns a list of all selected options (for multi-select dropdowns).',
+                '`Options` (Property): Returns a list of all options in the dropdown.'
+              ]},
+              { type: 'code', codeExample: {
+                language: 'csharp',
+                caption: 'Getting Options (C#)',
+                code: 'using OpenQA.Selenium; // Provides IWebElement.\nusing OpenQA.Selenium.Support.UI; // Provides SelectElement.\nusing System.Collections.Generic; // For IList<IWebElement>.\nusing System; // For Console.WriteLine.\n\n// countrySelect should be initialized already\nIWebElement selected = countrySelect.SelectedOption; // This is a property\nConsole.WriteLine("Selected country: " + selected.Text);\n\nIList<IWebElement> allOptions = countrySelect.Options; // This is a property\nConsole.WriteLine("Available countries:");\nforeach (IWebElement option in allOptions)\n{\n    Console.WriteLine(option.Text);\n}'
+              }},
+               { type: 'heading', level: 2, content: 'Deselecting Options (for multi-select dropdowns)' },
+              { type: 'list', content: [
+                '`DeselectByText(string text)`',
+                '`DeselectByValue(string value)`',
+                '`DeselectByIndex(int index)`',
+                '`DeselectAll()`'
+              ]},
+              { type: 'analogy', analogy: {
+                title: 'Analogy: Ordering from a Menu',
+                icon: '💡',
+                description: 'A dropdown is like a fixed menu. `SelectElement` is like telling the waiter your choice.\n- `SelectByText`: "I\'ll have the \'Cheeseburger\'."\n- `SelectByValue`: "I\'ll have item #CB101." (if items have codes)\n- `SelectByIndex`: "I\'ll have the third item on the list."\n- `Options`: Asking the waiter for a list of all available dishes.'
+              }},
+              { type: 'tip', content: 'The `SelectElement` class only works with standard HTML `<select>` elements. Custom-built dropdowns (made using divs, spans, etc.) need to be handled with regular IWebElement interactions (clicks to open, clicks on options). Be mindful of what kind of dropdown you are dealing with.'}
+            ],
+          },
+          {
+            id: 'alerts',
+            title: 'Handling Alerts',
+            icon: '🗣️',
+            shortDescription: 'Managing JavaScript alerts, confirms, and prompts.',
+            relatedImage: 'https://picsum.photos/seed/popupdialogue/800/300',
+            contentBlocks: [
+              { type: 'paragraph', content: 'Web applications often use JavaScript alerts, confirmation dialogs, and prompts. Selenium provides an API to interact with these. These are small pop-up messages that demand user attention.' },
+              { type: 'heading', level: 2, content: 'Switching to an Alert' },
+              { type: 'paragraph', content: 'To interact with an alert, you first need to switch WebDriver\'s focus to it using `driver.SwitchTo().Alert()`.' },
+              { type: 'code', codeExample: {
+                language: 'csharp',
+                caption: 'Switching to an Alert (C#)',
+                code: 'using OpenQA.Selenium; // Provides IAlert, By, IWebDriver.\n\n// Assume an action triggers an alert\ndriver.FindElement(By.Id("showAlertButton")).Click();\n\n// Switch to the alert\nIAlert alert = driver.SwitchTo().Alert();'
+              }},
+              { type: 'heading', level: 2, content: 'Alert Methods and Properties' },
+              { type: 'list', content: [
+                '`Accept()`: Clicks the "OK" or "Yes" button.',
+                '`Dismiss()`: Clicks the "Cancel" or "No" button.',
+                '`Text` (Property): Gets the text displayed on the alert.',
+                '`SendKeys(string textToSend)`: Sends text to a prompt dialog (if it accepts input).'
+              ]},
+              { type: 'code', codeExample: {
+                language: 'csharp',
+                caption: 'Interacting with an Alert (C#)',
+                code: 'using OpenQA.Selenium; // Provides IAlert (if not already included).\nusing System; // For Console.WriteLine.\n\n// alert object should be obtained by switching already\n\n// Get text from the alert\nstring alertMessage = alert.Text; // .Text is a property\nConsole.WriteLine("Alert message: " + alertMessage);\n\n// Accept the alert (e.g., click OK)\nalert.Accept();\n\n// If it were a confirmation dialog, you could dismiss it:\n// alert.Dismiss();\n\n// If it were a prompt:\n// alert.SendKeys("Some input text");\n// alert.Accept();'
+              }},
+              { type: 'analogy', analogy: {
+                title: 'Analogy: Dealing with a Pop-up Notification',
+                icon: '💡',
+                description: 'An alert is like a system pop-up on your computer that requires your attention.\n- `SwitchTo().Alert()`: Focusing on that pop-up.\n- `Text` (property): Reading the message on the pop-up.\n- `Accept()`: Clicking "OK" or "Confirm".\n- `Dismiss()`: Clicking "Cancel".\n- `SendKeys()`: Typing into an input field within the pop-up.'
+              }},
+              { type: 'tip', content: 'Always handle alerts promptly. If an alert is open, you generally cannot interact with the rest of the page until it is dismissed or accepted. They are attention seekers!'},
+              { type: 'warning', content: 'If you try to interact with an alert that is not present, a `NoAlertPresentException` will be thrown. Use explicit waits with `ExpectedConditions.AlertIsPresent()` to confirm an alert exists before switching.'}
+            ],
+          },
+          {
+            id: 'frames',
+            title: 'Handling Frames (iframes)',
+            icon: '🖼️',
+            shortDescription: 'Working with inline frames within a web page.',
+            relatedImage: 'https://picsum.photos/seed/iframestructure/800/300',
+            contentBlocks: [
+              { type: 'paragraph', content: 'Frames (`<iframe>` or `<frame>`) embed another HTML document within the current page. Selenium treats the content inside a frame as a separate context. You need to switch to the frame to interact with its elements. Think of it as a small page within a page.' },
+              { type: 'heading', level: 2, content: 'Switching to a Frame' },
+              { type: 'list', content: [
+                '`driver.SwitchTo().Frame(int frameIndex)`: Switch by zero-based index.',
+                '`driver.SwitchTo().Frame(string frameNameOrId)`: Switch by the frame\'s name or ID attribute.',
+                '`driver.SwitchTo().Frame(IWebElement frameElement)`: Switch using a previously located frame IWebElement.'
+              ]},
+              { type: 'code', codeExample: {
+                language: 'csharp',
+                caption: 'Switching to a Frame (C#)',
+                code: 'using OpenQA.Selenium; // Provides IWebDriver, By, IWebElement.\n\n// Switch by ID\ndriver.SwitchTo().Frame("myFrameId");\n\n// Interact with elements inside the frame\nIWebElement elementInFrame = driver.FindElement(By.Id("buttonInFrame"));\nelementInFrame.Click();\n\n// Switch back to the main document (default content)\ndriver.SwitchTo().DefaultContent();'
+              }},
+              { type: 'heading', level: 2, content: 'Switching Out of a Frame' },
+              { type: 'list', content: [
+                '`driver.SwitchTo().DefaultContent()`: Switches back to the main page context (top-level document).',
+                '`driver.SwitchTo().ParentFrame()`: Switches to the parent frame if you are in a nested frame.'
+              ]},
+              { type: 'analogy', analogy: {
+                title: 'Analogy: Picture Inside a Picture Frame',
+                icon: '💡',
+                description: 'The main webpage is like a room. An iframe is like a picture frame hanging on the wall, showing a different scene (another webpage).\n- `SwitchTo().Frame()`: Stepping closer to look *inside* that specific picture frame.\n- Interacting with elements in the frame: Pointing at details within the picture\'s scene.\n- `SwitchTo().DefaultContent()`: Stepping back to view the whole room again.\n- `SwitchTo().ParentFrame()`: If the picture frame itself is inside a larger display case (nested frames), this is like stepping out of the picture frame but still being inside the display case.'
+              }},
+              { type: 'tip', content: 'Always switch back to the default content or the correct parent frame after interacting with elements inside a frame, especially if you need to interact with elements outside that frame. Don\'t get lost!'},
+              { type: 'warning', content: 'If you try to find an element that is inside a frame without switching to that frame, Selenium will not find it and will throw a `NoSuchElementException`.'}
+            ],
+          },
+          {
+            id: 'windows',
+            title: 'Handling Windows and Tabs',
+            icon: '💻',
+            shortDescription: 'Managing multiple browser windows or tabs.',
+            relatedImage: 'https://picsum.photos/seed/multiplebrowsertabs/800/300',
+            contentBlocks: [
+              { type: 'paragraph', content: 'Web applications can open new browser windows or tabs. Selenium allows you to switch between these windows to interact with their content. Each window/tab has a unique identifier called a "window handle." Think of it as their address or name.' },
+              { type: 'heading', level: 2, content: 'Getting Window Handles' },
+              { type: 'list', content: [
+                '`driver.CurrentWindowHandle` (Property): Returns the handle of the currently focused window/tab.',
+                '`driver.WindowHandles` (Property): Returns a read-only collection of handles for all open windows/tabs.'
+              ]},
+              { type: 'heading', level: 2, content: 'Switching Windows/Tabs' },
+              { type: 'paragraph', content: 'Use `driver.SwitchTo().Window(string windowHandle)`.' },
+              { type: 'code', codeExample: {
+                language: 'csharp',
+                caption: 'Switching Windows (C#)',
+                code: 'using OpenQA.Selenium; // Provides IWebDriver, By, etc.\nusing System; // For Console.WriteLine.\nusing System.Linq; // For FirstOrDefault or other LINQ operations (if used).\nusing System.Collections.ObjectModel; // For ReadOnlyCollection<string>.\n\n// Get the handle of the original window\nstring mainWindowHandle = driver.CurrentWindowHandle; // This is a property\n\n// Action that opens a new window (e.g., clicking a link with target="_blank")\ndriver.FindElement(By.Id("openNewWindowLink")).Click();\n\n// Get all window handles\nReadOnlyCollection<string> allWindowHandles = driver.WindowHandles; // This is a property\n\n// Find the new window handle\nstring newWindowHandle = null;\nforeach (string handle in allWindowHandles)\n{\n    if (handle != mainWindowHandle)\n    {\n        newWindowHandle = handle;\n        break;\n    }\n}\n// Alternative using LINQ:\n// string newWindowHandle = allWindowHandles.FirstOrDefault(h => h != mainWindowHandle);\n\nif (newWindowHandle != null)\n{\n    driver.SwitchTo().Window(newWindowHandle);\n\n    // Driver is now focused on the new window\n    Console.WriteLine("New window title: " + driver.Title);\n    IWebElement elementInNewWindow = driver.FindElement(By.Id("someElementInNewWindow"));\n    elementInNewWindow.Click();\n\n    // Close the new window (driver focus switches back to one of the remaining windows, often the original one)\n    driver.Close();\n\n    // Switch back to the original window explicitly for clarity or if Close() behavior isn\'t guaranteed for focus switch\n    driver.SwitchTo().Window(mainWindowHandle);\n    Console.WriteLine("Back to original window title: " + driver.Title);\n}\nelse\n{\n    Console.WriteLine("New window not found.");\n}'
+              }},
+              { type: 'heading', level: 2, content: 'Closing Windows/Tabs' },
+               { type: 'list', content: [
+                '`driver.Close()`: Closes the currently focused window/tab. If it\'s the last window, it may quit the browser session.',
+                '`driver.Quit()`: Closes all windows/tabs opened by WebDriver and ends the session.'
+              ]},
+              { type: 'analogy', analogy: {
+                title: 'Analogy: Managing Multiple Open Documents',
+                icon: '💡',
+                description: 'Imagine having multiple documents open on your computer desktop.\n- `CurrentWindowHandle`: Identifying the currently active document.\n- `WindowHandles`: Getting a list of names of all open documents.\n- `SwitchTo().Window()`: Clicking on a different document to bring it to the front.\n- `Close()`: Closing the currently active document.\n- `Quit()`: Closing all documents and the application itself.'
+              }},
+              { type: 'tip', content: 'When a new window opens, WebDriver does not automatically switch focus to it. You must explicitly switch. Nothing happens automatically!'}
+            ],
+          },
+          {
+            id: 'actions',
+            title: 'Actions Class',
+            icon: '🧩',
+            shortDescription: 'Performing complex user gestures.',
+            relatedImage: 'https://picsum.photos/seed/complexgestureui/800/300',
+            contentBlocks: [
+              { type: 'paragraph', content: 'The `Actions` class is used to emulate complex user interactions like mouse movements, drag-and-drop, keyboard actions (e.g., pressing Shift, Ctrl), and context (right) clicks. It helps perform more advanced actions than simple clicks or types.' },
+              { type: 'html', content: `
+                <div class="gif-placeholder">
+                  <p><strong>Complex User Gestures (Actions Class)</strong></p>
+                  <img src="https://picsum.photos/seed/draganddropanimation/400/200" alt="Drag and drop GIF placeholder">
+                  <p><small><em>Imagine an animated GIF demonstrating a drag-and-drop operation or a mouse hover that reveals a submenu, performed using the Actions class.</em></small></p>
+                </div>
+              `},
+              { type: 'heading', level: 2, content: 'Creating an Actions Object' },
+              { type: 'code', codeExample: {
+                language: 'csharp',
+                caption: 'Initializing Actions (C#)',
+                code: 'using OpenQA.Selenium; // Provides IWebDriver.\nusing OpenQA.Selenium.Interactions; // Provides Actions class.\n\nActions actions = new Actions(driver);'
+              }},
+              { type: 'heading', level: 2, content: 'Common Actions Methods' },
+              { type: 'paragraph', content: 'Actions are typically chained together and then executed with `Perform()`.'},
+              { type: 'list', content: [
+                '`MoveToElement(IWebElement target)`: Moves the mouse cursor to the center of the specified element.',
+                '`Click(IWebElement target)`: Clicks an element (similar to element.Click() but can be chained).',
+                '`Click()`: Clicks at the current mouse location.',
+                '`DoubleClick(IWebElement target)`: Double-clicks an element.',
+                '`ContextClick(IWebElement target)`: Right-clicks an element.',
+                '`DragAndDrop(IWebElement source, IWebElement target)`: Drags an element (`source`) and drops it onto another element (`target`).',
+                '`DragAndDropToOffset(IWebElement source, int xOffset, int yOffset)`: Drags an element by a specified offset.',
+                '`SendKeys(string keysToSend)`: Sends keys to the currently focused element.',
+                '`KeyDown(string key)`: Simulates pressing a modifier key (e.g., `Keys.Shift`, `Keys.Control`). Use constants from `OpenQA.Selenium.Keys`.',
+                '`KeyUp(string key)`: Simulates releasing a modifier key.',
+                '`Build()`: Compiles all chained actions into a single composite action (optional, `Perform()` calls this internally).',
+                '`Perform()`: Executes the built sequence of actions.'
+              ]},
+              { type: 'code', codeExample: {
+                language: 'csharp',
+                caption: 'Actions Examples (C#)',
+                code: 'using OpenQA.Selenium; // Provides IWebDriver, By, IWebElement, Keys.\nusing OpenQA.Selenium.Interactions; // Provides Actions class.\n\nIWebElement menuElement = driver.FindElement(By.Id("mainMenu"));\nIWebElement subMenuItem = driver.FindElement(By.Id("subMenuItem"));\n\n// Mouse hover (move to element) and click submenu item\nactions.MoveToElement(menuElement).MoveToElement(subMenuItem).Click().Perform();\n\n// Drag and drop\nIWebElement draggable = driver.FindElement(By.Id("draggable"));\nIWebElement droppable = driver.FindElement(By.Id("droppable"));\nactions.DragAndDrop(draggable, droppable).Perform();\n\n// Send keys with Shift pressed\nIWebElement inputField = driver.FindElement(By.Id("myInput"));\nactions.MoveToElement(inputField).Click() // First click the input field to focus\n       .KeyDown(Keys.Shift) // From OpenQA.Selenium.Keys\n       .SendKeys("hello")\n       .KeyUp(Keys.Shift)\n       .SendKeys(" world")\n       .Perform();'
+              }},
+              { type: 'analogy', analogy: {
+                title: 'Analogy: Expert Use of Mouse and Keyboard',
+                icon: '💡',
+                description: 'Simple IWebElement methods are like basic key presses or clicks. The `Actions` class is like using your mouse and keyboard with more complex movements and combinations: hovering over menus to reveal submenus, dragging items across the screen, or typing with Shift pressed to get uppercase letters. It\'s like you\'ve become an expert user!'
+              }},
+              { type: 'tip', content: 'Always call `Perform()` at the end of your Actions chain to execute the defined sequence. Without `Perform()`, the actions are defined but not executed. Just planning is not enough, execution is key!'}
+            ],
+          },
+          {
+            id: 'jse',
+            title: 'IJavaScriptExecutor',
+            icon: '⚙️',
+            shortDescription: 'Executing JavaScript code in the browser context.',
+            relatedImage: 'https://picsum.photos/seed/javascriptconsole/800/300',
+            contentBlocks: [
+              { type: 'paragraph', content: '`IJavaScriptExecutor` is an interface that allows Selenium to execute JavaScript code directly within the browser. This can be useful for actions not directly supported by the WebDriver API, or for interacting with elements in unconventional ways. Think of it as talking directly to the browser in its own language.' },
+              { type: 'heading', level: 2, content: 'Casting to IJavaScriptExecutor' },
+              { type: 'code', codeExample: {
+                language: 'csharp',
+                caption: 'Casting to IJavaScriptExecutor (C#)',
+                code: 'using OpenQA.Selenium; // Provides IWebDriver, IJavaScriptExecutor.\n\nIJavaScriptExecutor js = (IJavaScriptExecutor)driver;'
+              }},
+              { type: 'heading', level: 2, content: 'Executing JavaScript' },
+              { type: 'list', content: [
+                '`ExecuteScript(string script, params object[] args)`: Executes JavaScript in the context of the currently selected frame or window. The script can return values (primitives, IWebElements, or lists of them).',
+                '`ExecuteAsyncScript(string script, params object[] args)`: Executes asynchronous JavaScript code. The script must signal its completion by invoking the provided callback.'
+              ]},
+              { type: 'code', codeExample: {
+                language: 'csharp',
+                caption: 'IJavaScriptExecutor Examples (C#)',
+                code: 'using OpenQA.Selenium; // Provides IWebDriver, IJavaScriptExecutor, By, IWebElement.\nusing System; // For Console.WriteLine.\n\n// js object should be cast already\n\n// Scroll to the bottom of the page\njs.ExecuteScript("window.scrollTo(0, document.body.scrollHeight)");\n\n// Click an element that might be obscured (use with caution)\nIWebElement button = driver.FindElement(By.Id("hiddenButton"));\njs.ExecuteScript("arguments[0].click();", button);\n\n// Get page title using JavaScript\nstring title = (string)js.ExecuteScript("return document.title;");\nConsole.WriteLine("Page title via JS: " + title);\n\n// Change element style (e.g., highlight it)\nIWebElement elementToHighlight = driver.FindElement(By.Id("importantInfo"));\njs.ExecuteScript("arguments[0].style.border=\'3px solid red\'", elementToHighlight);'
+              }},
+              { type: 'analogy', analogy: {
+                title: 'Analogy: Opening the Hood of a Car to "Reach In"',
+                icon: '💡',
+                description: 'WebDriver provides standard controls (steering wheel, pedals). `IJavaScriptExecutor` is like opening the car\'s hood and directly manipulating engine parts or wiring. It gives you more direct control but requires more care, as you might bypass some standard mechanisms. It\'s a power user tool!'
+              }},
+              { type: 'tip', content: 'Use IJavaScriptExecutor as a last resort when standard WebDriver commands are not sufficient. Over-reliance on it can make tests less readable and more brittle if the application\'s underlying JavaScript changes.'},
+              { type: 'warning', content: 'Be careful with the types of values returned from `ExecuteScript`. You may need to cast them appropriately in your C# code.'}
+            ],
+          },
+          {
+            id: 'cookies',
+            title: 'Managing Cookies',
+            icon: '🍪',
+            shortDescription: 'Interacting with browser cookies.',
+            relatedImage: 'https://picsum.photos/seed/browserstoragecookie/800/300',
+            contentBlocks: [
+              { type: 'paragraph', content: 'Selenium allows you to interact with browser cookies, which can be useful for managing sessions, setting up test preconditions (e.g., logging in by setting a session cookie), or verifying cookie-based functionality. Cookies are small text files that websites store in your browser to remember you.' },
+              { type: 'heading', level: 2, content: 'Cookie Management Methods' },
+              { type: 'paragraph', content: 'Cookie operations are accessed via `driver.Manage().Cookies`.' },
+              { type: 'list', content: [
+                '`AddCookie(Cookie cookie)`: Adds a specific cookie. You typically create a `Cookie` object first.',
+                '`GetCookieNamed(string name)`: Retrieves a single cookie by its name.',
+                '`AllCookies` (Property): Gets a read-only collection of all cookies visible on the current page.',
+                '`DeleteCookieNamed(string name)`: Deletes a specific cookie by name.',
+                '`DeleteCookie(Cookie cookie)`: Deletes a specific cookie if you have the Cookie object.',
+                '`DeleteAllCookies()`: Deletes all cookies for the current domain.'
+              ]},
+              { type: 'code', codeExample: {
+                language: 'csharp',
+                caption: 'Cookie Management Example (C#)',
+                code: 'using OpenQA.Selenium; // Provides IWebDriver, Cookie.\nusing System; // Provides DateTime, Console.\nusing System.Collections.ObjectModel; // For ReadOnlyCollection<Cookie>.\n\n// Ensure you are on the page of the domain for which the cookie is valid.\n// driver.Navigate().GoToUrl("http://example.com"); \n\n// Add a cookie (name, value, domain, path, expiry - domain/path/expiry are optional)\n// Domain is the website the cookie is for, path is a specific part of that website.\n// Expiry indicates how long the cookie will live.\nCookie myCookie = new Cookie("myKey", "myValue", ".example.com", "/", DateTime.Now.AddDays(1));\n// Or simpler for current domain if already navigated:\n// Cookie myCookie = new Cookie("myKey", "myValue"); \ndriver.Manage().Cookies.AddCookie(myCookie);\n\n// Get all cookies\nReadOnlyCollection<Cookie> allCookies = driver.Manage().Cookies.AllCookies;\nforeach (Cookie c in allCookies)\n{\n    Console.WriteLine($"Cookie: {c.Name} = {c.Value}, Domain: {c.Domain}, Path: {c.Path}, Expires: {c.Expiry}");\n}\n\n// Get a specific cookie\nCookie specificCookie = driver.Manage().Cookies.GetCookieNamed("myKey");\nif (specificCookie != null)\n{\n    Console.WriteLine($"Found cookie: {specificCookie.Name}");\n}\n\n// Delete a cookie by name\ndriver.Manage().Cookies.DeleteCookieNamed("myKey");\n\n// Delete all cookies for the current domain\ndriver.Manage().Cookies.DeleteAllCookies();'
+              }},
+              { type: 'analogy', analogy: {
+                title: 'Analogy: Visitor Badges at an Event',
+                icon: '💡',
+                description: 'Cookies are like small pieces of information (visitor badges) that a website gives your browser to remember you or your preferences.\n- `AddCookie`: Giving yourself a pre-validated badge to enter a restricted area (e.g., bypassing login for a test).\n- `AllCookies`: Looking at all the badges you\'ve collected.\n- `DeleteCookieNamed`: Returning a specific badge.\n- `DeleteAllCookies`: Returning all your badges. Like the event is over, badges back!'
+              }},
+              { type: 'tip', content: 'When adding a cookie, ensure you are on the domain for which the cookie is valid. You usually need to navigate to a page on that domain first, and the cookie\'s domain attribute should match.'}
+            ],
+          },
+          {
+            id: 'navigation',
+            title: 'Navigation Commands',
+            icon: '🧭',
+            shortDescription: 'Controlling browser navigation like back, forward, refresh.',
+            relatedImage: 'https://picsum.photos/seed/browserhistoryflow/800/300',
+            contentBlocks: [
+              { type: 'paragraph', content: 'Selenium WebDriver provides methods to control browser navigation, much like using the browser\'s own buttons. You can programmatically send the browser backward or forward in its history.' },
+              { type: 'heading', level: 2, content: 'Navigation Methods' },
+              { type: 'paragraph', content: 'These are accessed via `driver.Navigate()`.' },
+              { type: 'list', content: [
+                '`GoToUrl(string url)` or `GoToUrl(Uri url)`: Navigates to a new URL. Similar to `driver.Url = "url"`, but `Navigate().GoToUrl()` is more explicit for the intent and part of the navigation interface.',
+                '`Back()`: Navigates one page back in the browser history.',
+                '`Forward()`: Navigates one page forward in the browser history.',
+                '`Refresh()`: Reloads the current page.'
+              ]},
+              { type: 'code', codeExample: {
+                language: 'csharp',
+                caption: 'Navigation Example (C#)',
+                code: 'using OpenQA.Selenium; // Provides IWebDriver.\nusing System; // Provides Console.WriteLine, Uri (if used).\n\n// Navigate to a URL\ndriver.Navigate().GoToUrl("https://www.example.com");\nConsole.WriteLine("Current URL: " + driver.Url); // .Url is a property\n\n// Navigate to another URL\ndriver.Navigate().GoToUrl("https://www.iana.org/domains/reserved");\nConsole.WriteLine("New URL: " + driver.Url);\n\n// Go back\ndriver.Navigate().Back();\nConsole.WriteLine("After going back: " + driver.Url);\n\n// Go forward\ndriver.Navigate().Forward();\nConsole.WriteLine("After going forward: " + driver.Url);\n\n// Refresh the page\ndriver.Navigate().Refresh();\nConsole.WriteLine("After refreshing: " + driver.Url);'
+              }},
+              { type: 'analogy', analogy: {
+                title: 'Analogy: Using Browser Buttons',
+                icon: '💡',
+                description: 'These commands are equivalent to using your browser\'s navigation buttons:\n- `Navigate().GoToUrl()`: Typing a new address in the address bar and pressing Enter.\n- `Navigate().Back()`: Clicking the "Back" button.\n- `Navigate().Forward()`: Clicking the "Forward" button.\n- `Navigate().Refresh()`: Clicking the "Refresh" or "Reload" button. Exactly the same thing, just via code!'
+              }},
+              { type: 'tip', content: '`driver.Url = "url"` can also be used to load a new page, but `driver.Navigate().GoToUrl(url)` is often preferred for clarity in navigation sequences.'}
+            ],
+          },
+          {
+            id: 'pom',
+            title: 'Page Object Model (POM)',
+            icon: '🏗️',
+            shortDescription: 'A design pattern to enhance test maintenance and readability.',
+            relatedImage: 'https://picsum.photos/seed/codestructureui/800/300',
+            contentBlocks: [
+              { type: 'paragraph', content: 'The Page Object Model (POM) is a widely adopted design pattern in test automation. It creates an object repository for web UI elements, improving test maintenance and reducing code duplication. It\'s a way to keep your test code clean and organized, like keeping a house tidy!' },
+              { type: 'heading', level: 2, content: 'Core Principles of POM' },
+              { type: 'list', content: [
+                'One Class Per Page: Each web page in the application has a corresponding Page Class.',
+                'Elements as Properties or Fields: This Page Class identifies the IWebElements of that page, often located using `By` objects.',
+                'User Interactions as Methods: The Page Class implements methods to perform user interactions on those elements (e.g., `Login(username, password)`, `Search(term)`).',
+                'Tests Use Page Class Methods: Test scripts use methods of these Page Classes to interact with the UI, keeping test logic separate from UI details.'
+              ]},
+              { type: 'heading', level: 2, content: 'Benefits of POM' },
+              { type: 'list', content: [
+                'Readability: Tests become cleaner and easier to understand as they describe user journeys rather than low-level UI interactions.',
+                'Maintainability: If UI elements change, only the relevant Page Class needs to be updated. Test scripts remain unchanged.',
+                'Reusability: Page objects and their methods can be reused across multiple tests.',
+                'Reduced Duplication: Common sequences of actions are encapsulated in Page Class methods.'
+              ]},
+              { type: 'code', codeExample: {
+                language: 'csharp',
+                caption: 'Simple POM Example (C# with NUnit)',
+                code: '// --- Assume HomePage.cs Exists --- \n// public class HomePage \n// { \n//     private IWebDriver driver; \n//     public HomePage(IWebDriver driver) { this.driver = driver; /* Add title check or wait for unique element */ } \n//     public bool IsUserLoggedIn() { /* logic to check login status, e.g., find logout button */ return driver.FindElements(By.Id("logoutLink")).Count > 0; } \n// }\n// --- End of HomePage assumption ---\n\n// LoginPage.cs (Page Class)\nusing OpenQA.Selenium; // Provides IWebDriver, By, IWebElement.\nusing System; // Provides InvalidOperationException (if used).\n\npublic class LoginPage\n{\n    private IWebDriver driver;\n    // Using private readonly By for locators is a common pattern\n    private readonly By _usernameInputLocator = By.Id("username");\n    private readonly By _passwordInputLocator = By.Id("password");\n    private readonly By _loginButtonLocator = By.Id("loginBtn");\n\n    // Optionally expose elements as properties if tests need them, though interactions are usually via methods\n    // public IWebElement UsernameInput => driver.FindElement(_usernameInputLocator);\n\n    public LoginPage(IWebDriver driver)\n    {\n        this.driver = driver;\n        // Optional: verify page by checking title or presence of a unique element\n        // if (this.driver.Title != "Login Page Title") \n        // {\n        //     // Consider using WebDriverWait for title to ensure page has loaded\n        //     // throw new InvalidOperationException($"This is not the Login Page. Current page title is: {this.driver.Title}");\n        // }\n    }\n\n    public void EnterUsername(string username)\n    {\n        driver.FindElement(_usernameInputLocator).SendKeys(username);\n    }\n\n    public void EnterPassword(string password)\n    {\n        driver.FindElement(_passwordInputLocator).SendKeys(password);\n    }\n\n    public HomePage ClickLoginButton() // Can return the next Page Object\n    {\n        driver.FindElement(_loginButtonLocator).Click();\n        return new HomePage(driver); // Assume HomePage is another Page Class\n    }\n\n    // Combined login method for convenience\n    public HomePage LoginAs(string username, string password)\n    {\n        EnterUsername(username);\n        EnterPassword(password);\n        return ClickLoginButton();\n    }\n}\n\n// MyLoginTests.cs (Test Class - NUnit example)\nusing NUnit.Framework; // Provides NUnit attributes (TestFixture, SetUp, Test, TearDown).\nusing OpenQA.Selenium; // Provides IWebDriver, By, etc.\nusing OpenQA.Selenium.Chrome; // Provides ChromeDriver.\nusing System; // For driver.Quit() in TearDown (though IDisposable pattern is better).\n\n[TestFixture] // NUnit attribute for a test class\npublic class MyLoginTests\n{\n    private IWebDriver driver;\n\n    [SetUp] // NUnit attribute for a setup method run before each test\n    public void Setup()\n    {\n        driver = new ChromeDriver();\n        driver.Manage().Window.Maximize(); // Optional: Maximize window\n        driver.Navigate().GoToUrl("http://example.com/login"); // Replace with your actual login URL\n    }\n\n    [Test] // NUnit attribute for a test method\n    public void TestSuccessfulLogin()\n    {\n        LoginPage loginPage = new LoginPage(driver);\n        // Assume HomePage has an IsUserLoggedIn method as defined in the placeholder above\n        HomePage homePage = loginPage.LoginAs("testuser", "testpass"); \n        \n        // Assertions on HomePage would go here\n        Assert.IsTrue(homePage.IsUserLoggedIn(), "User should be successfully logged in.");\n        // Example: Assert.AreEqual("Welcome Page Title", driver.Title, "Not on the expected home page.");\n    }\n\n    [TearDown] // NUnit attribute for a teardown method run after each test\n    public void TearDown()\n    {\n        if (driver != null)\n        {\n            driver.Quit();\n        }\n    }\n}'
+              }},
+              { type: 'analogy', analogy: {
+                title: 'Analogy: A Well-Organized Kitchen',
+                icon: '💡',
+                description: 'Imagine a chef (Test Script) wants to bake a cake.\n- Without POM: The chef has to find each ingredient (IWebElement) scattered all over the kitchen (webpage) and figure out how to use each appliance (interaction) every time. Very messy and time-consuming!\n- With POM: The kitchen is organized into stations (Page Classes like "BakingStation", "PantryStation"). Each station has labeled containers for ingredients (IWebElements located by `By` objects) and clear instructions/tools for tasks (Methods like `MixBatter()`, `PreheatOven()`). The chef simply follows the recipe (test flow) using these organized stations and their defined actions. Much easier and cleaner!'
+              }},
+              { type: 'tip', content: 'Start implementing POM from the beginning of your automation project. It significantly improves long-term maintainability. A little effort initially saves a lot later.'}
+            ],
+          },
+          {
+            id: 'grid',
+            title: 'Selenium Grid',
+            icon: '🌐',
+            shortDescription: 'Running tests in parallel on multiple machines/browsers.',
+            relatedImage: 'https://picsum.photos/seed/networknodesdiagram/800/300',
+            contentBlocks: [
+              { type: 'paragraph', content: 'Selenium Grid allows you to distribute your test execution across multiple machines (nodes) and browsers. This is crucial for speeding up test runs, especially for large test suites, and for testing on different browser/OS combinations. If 10 people work together on a task, it gets done faster, right? Grid does something similar.' },
+              { type: 'html', content: `
+                <div class="gif-placeholder">
+                  <p><strong>Selenium Grid: Parallel Test Execution</strong></p>
+                  <img src="https://picsum.photos/seed/parallelprocessingflow/400/250" alt="Selenium Grid animation placeholder">
+                  <p><small><em>An animation here could show test requests going to a Hub and being distributed to multiple Nodes (browsers) running tests simultaneously.</em></small></p>
+                </div>
+              `},
+              { type: 'heading', level: 2, content: 'Key Components of Selenium Grid' },
+              { type: 'list', content: [
+                'Hub: The central point that receives test requests. It routes commands to registered Nodes.',
+                'Nodes: Machines (physical or virtual) where browsers are actually running. Nodes register themselves with the Hub and declare their capabilities (e.g., browser type, version, OS).'
+              ]},
+              { type: 'heading', level: 2, content: 'How It Works' },
+              { type: 'list', content: [
+                'Setup: You start a Hub and one or more Nodes.',
+                'Test Script Configuration: Your WebDriver script is configured to connect to the Hub\'s URL (using `RemoteWebDriver`) and requests specific capabilities (e.g., "I want to run on Chrome version X on Windows").',
+                'Execution: The Hub receives the request, finds a Node that matches the desired capabilities, and forwards the test commands to that Node. The Node executes the commands on its browser and sends results back to the Hub, which then relays them to your script.'
+              ]},
+              { type: 'code', codeExample: {
+                language: 'csharp',
+                caption: 'Connecting to Selenium Grid (C# - RemoteWebDriver)',
+                code: 'using OpenQA.Selenium; // Provides IWebDriver.\nusing OpenQA.Selenium.Remote; // Provides RemoteWebDriver class and DesiredCapabilities (older way).\nusing OpenQA.Selenium.Chrome; // Provides ChromeOptions (better way for browser-specific capabilities).\nusing System; // Provides Uri, TimeSpan, Console.\n\n// ...\nChromeOptions chromeOptions = new ChromeOptions();\nchromeOptions.PlatformName = "WINDOWS"; // Example: "LINUX", "MAC"\n// chromeOptions.BrowserVersion = "latest"; // Specify if needed, or let Hub decide\n// You can add more options: chromeOptions.AddArgument("--headless");\n\n// For older Selenium Grid or if you need to use DesiredCapabilities directly (less common now):\n// DesiredCapabilities caps = new DesiredCapabilities();\n// caps.SetCapability(CapabilityType.BrowserName, "chrome");\n// caps.SetCapability(CapabilityType.PlatformName, "WINDOWS");\n\nIWebDriver driver = null;\ntry\n{\n    // Assume Hub is running on localhost:4444\n    // For Selenium 4+, the /wd/hub suffix in the URL is often optional for the Hub.\n    // Adding a command timeout for RemoteWebDriver is good practice.\n    driver = new RemoteWebDriver(new Uri("http://localhost:4444/wd/hub"), chromeOptions.ToCapabilities(), TimeSpan.FromSeconds(180));\n    // Or with DesiredCapabilities (older style):\n    // driver = new RemoteWebDriver(new Uri("http://localhost:4444/wd/hub"), caps, TimeSpan.FromSeconds(180));\n    \n    driver.Navigate().GoToUrl("https://www.example.com");\n    Console.WriteLine("Grid test title: " + driver.Title);\n}\ncatch (Exception e)\n{\n    Console.WriteLine("Error connecting to Grid or running test: " + e.ToString());\n}\nfinally\n{\n    if (driver != null)\n    {\n        driver.Quit();\n    }\n}'
+              }},
+              { type: 'analogy', analogy: {
+                title: 'Analogy: Taxi Dispatch Center',
+                icon: '💡',
+                description: 'The Hub is like a taxi dispatch center. Your test script is a customer calling for a ride (to run a test).\n- The customer specifies requirements: "I need a van (Chrome browser) that can go to the airport (specific OS/version)."\n- The dispatch center (Hub) checks its available taxis (Nodes) and finds a match.\n- It sends the ride details to that taxi. The taxi (Node) takes the customer (executes the test) to the destination.\n- This allows multiple customers to be served simultaneously by different taxis. Efficient, isn\'t it?'
+              }},
+              { type: 'tip', content: 'Selenium Grid 4 has significantly simplified setup. It can run in Standalone, Hub/Node, or Distributed mode. Docker containers are also a popular way to set up Grid environments.'},
+              { type: 'warning', content: 'Managing a Selenium Grid can add operational overhead. Consider cloud-based Grid providers for easier scaling and maintenance if you have extensive cross-browser testing needs.'}
+            ],
+          }
+        ];
+
+        const topicList = document.getElementById('topic-list');
+        const contentDisplay = document.getElementById('content-display');
+        const sidebar = document.getElementById('sidebar');
+        const sidebarToggle = document.getElementById('sidebarToggle');
+        let currentSelectedTopicId = null;
+
+        function displayWelcomeMessage() {
+            contentDisplay.innerHTML = `
+                <div class="content-header" style="text-align: center;">
+                    <h1><span class="topic-icon-large" role="img" aria-label="Welcome">👋</span> Welcome to the Selenium WebDriver Deep Dive!</h1>
+                    <p class="short-desc">Select a topic from the sidebar to learn more.</p>
+                    <img src="https://picsum.photos/seed/techdashboard/800/350" alt="Tech learning illustration" class="related-image" style="margin-top: 20px; max-width: 600px; display:inline-block;">
+                </div>
+            `;
+        }
+        
+        function renderContentBlock(block) {
+            const blockContainer = document.createElement('div'); 
+            switch (block.type) {
+                case 'paragraph':
+                    const p = document.createElement('p');
+                    p.textContent = block.content;
+                    blockContainer.appendChild(p);
+                    break;
+                case 'heading':
+                    const heading = document.createElement(`h${block.level || 2}`);
+                    heading.textContent = block.content;
+                    blockContainer.appendChild(heading);
+                    break;
+                case 'html': 
+                    const htmlDiv = document.createElement('div');
+                    htmlDiv.innerHTML = block.content;
+                    blockContainer.appendChild(htmlDiv);
+                    break;
+                case 'subsectionHeader':
+                    const subHeader = document.createElement('h3');
+                    subHeader.className = 'subsection-header';
+                    subHeader.textContent = block.content;
+                    blockContainer.appendChild(subHeader);
+                    break;
+                case 'subheading':
+                    const subHeading = document.createElement('h4'); 
+                    subHeading.textContent = block.content;
+                    blockContainer.appendChild(subHeading);
+                    break;    
+                case 'list':
+                    const ul = document.createElement('ul');
+                    block.content.forEach(itemText => {
+                        const li = document.createElement('li');
+                        li.textContent = itemText;
+                        ul.appendChild(li);
+                    });
+                    blockContainer.appendChild(ul);
+                    break;
+                case 'code':
+                    if (block.codeExample) {
+                        const codeBlockDiv = document.createElement('div');
+                        codeBlockDiv.className = 'code-block';
+                        if (block.codeExample.caption) {
+                            const captionP = document.createElement('p');
+                            captionP.className = 'caption';
+                            captionP.textContent = block.codeExample.caption;
+                            codeBlockDiv.appendChild(captionP);
+                        }
+                        const pre = document.createElement('pre');
+                        const code = document.createElement('code');
+                        if(block.codeExample.language) {
+                            code.className = 'language-' + block.codeExample.language;
+                        }
+                        code.textContent = block.codeExample.code; 
+                        pre.appendChild(code);
+                        codeBlockDiv.appendChild(pre);
+                        blockContainer.appendChild(codeBlockDiv);
+                    }
+                    break;
+                case 'analogy':
+                    if (block.analogy) {
+                        const analogyDiv = document.createElement('div');
+                        analogyDiv.className = 'analogy-block';
+                        const analogyTitle = document.createElement('h4');
+                        if (block.analogy.icon) {
+                           const iconSpan = document.createElement('span');
+                           iconSpan.className = 'analogy-icon'; 
+                           iconSpan.setAttribute('role', 'img');
+                           iconSpan.setAttribute('aria-label', block.analogy.title || 'Analogy');
+                           iconSpan.textContent = block.analogy.icon;
+                           analogyTitle.appendChild(iconSpan);
+                        }
+                        analogyTitle.appendChild(document.createTextNode(" " + block.analogy.title)); 
+                        
+                        const analogyDesc = document.createElement('p');
+                        analogyDesc.innerHTML = block.analogy.description.replace(/\n/g, '<br>');
+                        analogyDiv.appendChild(analogyTitle);
+                        analogyDiv.appendChild(analogyDesc);
+                        blockContainer.appendChild(analogyDiv);
+                    }
+                    break;
+                case 'tip':
+                case 'warning':
+                    const noticeDiv = document.createElement('div');
+                    noticeDiv.className = block.type === 'tip' ? 'tip-block' : 'warning-block';
+                    const iconSpan = document.createElement('span');
+                    iconSpan.className = 'block-icon';
+                    iconSpan.setAttribute('role', 'img');
+                    iconSpan.textContent = block.type === 'tip' ? '💡' : '⚠️';
+                    noticeDiv.appendChild(iconSpan);
+                    
+                    const noticeP = document.createElement('p');
+                    const strong = document.createElement('strong');
+                    strong.textContent = block.type === 'tip' ? 'Tip: ' : 'Warning: '; // Changed here
+                    noticeP.appendChild(strong);
+                    noticeP.appendChild(document.createTextNode(block.content));
+                    noticeDiv.appendChild(noticeP);
+                    blockContainer.appendChild(noticeDiv);
+                    break;
+                default:
+                    const unknownP = document.createElement('p');
+                    unknownP.textContent = `Unknown content block type: ${block.type}`;
+                    unknownP.style.color = 'red';
+                    blockContainer.appendChild(unknownP);
+            }
+            const outerDiv = document.createElement('div');
+            outerDiv.className = 'content-block';
+            outerDiv.appendChild(blockContainer);
+            return outerDiv;
+        }
+
+        function displayTopic(topicId) {
+            const topic = seleniumTopics.find(t => t.id === topicId);
+            if (!topic) {
+                displayWelcomeMessage();
+                return;
+            }
+
+            contentDisplay.innerHTML = ''; 
+            contentDisplay.scrollTop = 0; 
+
+            const headerDiv = document.createElement('div');
+            headerDiv.className = 'content-header';
+            const titleH1 = document.createElement('h1');
+            if (topic.icon) {
+                const iconSpan = document.createElement('span');
+                iconSpan.className = 'topic-icon-large';
+                iconSpan.setAttribute('role', 'img');
+                iconSpan.setAttribute('aria-label', topic.title);
+                iconSpan.textContent = topic.icon;
+                titleH1.appendChild(iconSpan);
+            }
+            titleH1.appendChild(document.createTextNode(topic.title));
+            
+            const shortDescP = document.createElement('p');
+            shortDescP.className = 'short-desc';
+            shortDescP.textContent = topic.shortDescription;
+            
+            headerDiv.appendChild(titleH1);
+            headerDiv.appendChild(shortDescP);
+
+            if (topic.relatedImage) {
+                const img = document.createElement('img');
+                img.src = topic.relatedImage;
+                img.alt = topic.title;
+                img.className = 'related-image';
+                headerDiv.appendChild(img);
+            }
+            contentDisplay.appendChild(headerDiv);
+
+            topic.contentBlocks.forEach(block => {
+                contentDisplay.appendChild(renderContentBlock(block));
+            });
+            
+            const footerDiv = document.createElement('div');
+            footerDiv.className = 'content-footer';
+            footerDiv.innerHTML = `
+                <p>&copy; ${new Date().getFullYear()} Selenium WebDriver Deep Dive. Happy Automating!</p>
+                <p class="mt-2">
+                  For official Selenium documentation, visit 
+                  <a 
+                    href="https://www.selenium.dev/documentation/" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                  >
+                    selenium.dev <span role="img" aria-label="link icon">🔗</span>
+                  </a>
+                </p>
+            `;
+            contentDisplay.appendChild(footerDiv);
+
+
+            if (currentSelectedTopicId) {
+                const prevActive = topicList.querySelector(`li[data-topic-id="${currentSelectedTopicId}"]`);
+                if (prevActive) prevActive.classList.remove('active');
+            }
+            const currentActive = topicList.querySelector(`li[data-topic-id="${topicId}"]`);
+            if (currentActive) currentActive.classList.add('active');
+            currentSelectedTopicId = topicId;
+
+            if (window.innerWidth <= 768 && sidebar.classList.contains('open')) {
+                sidebar.classList.remove('open');
+                sidebarToggle.classList.remove('sidebar-open');
+                const isOpen = sidebar.classList.contains('open');
+                sidebarToggle.setAttribute('aria-expanded', isOpen.toString());
+                sidebarToggle.innerHTML = '☰';
+                sidebarToggle.setAttribute('aria-label', 'Open navigation menu');
+            }
+        }
+
+        seleniumTopics.forEach(topic => {
+            const li = document.createElement('li');
+            li.dataset.topicId = topic.id;
+            
+            const iconSpan = document.createElement('span');
+            iconSpan.className = 'topic-icon';
+            iconSpan.setAttribute('role', 'img');
+            iconSpan.setAttribute('aria-label', topic.title);
+            iconSpan.textContent = topic.icon || '📄'; 
+            li.appendChild(iconSpan);
+            
+            li.appendChild(document.createTextNode(topic.title));
+            
+            li.addEventListener('click', () => displayTopic(topic.id));
+            topicList.appendChild(li);
+        });
+
+        sidebarToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('open');
+            sidebarToggle.classList.toggle('sidebar-open');
+            const isOpen = sidebar.classList.contains('open');
+            sidebarToggle.setAttribute('aria-expanded', isOpen.toString());
+            if (isOpen) {
+                sidebarToggle.innerHTML = '✕'; 
+                sidebarToggle.setAttribute('aria-label', 'Close navigation menu');
+            } else {
+                sidebarToggle.innerHTML = '☰'; 
+                sidebarToggle.setAttribute('aria-label', 'Open navigation menu');
+            }
+        });
+        
+        document.getElementById('currentYear').textContent = new Date().getFullYear();
+
+        function initializeApp() {
+            const hash = window.location.hash.substring(1);
+            const topicFromHash = seleniumTopics.find(t => t.id === hash);
+            if (topicFromHash) {
+                displayTopic(topicFromHash.id);
+            } else if (seleniumTopics.length > 0) {
+                displayTopic(seleniumTopics[0].id); 
+                window.location.hash = seleniumTopics[0].id; 
+            } else {
+                displayWelcomeMessage();
+            }
+        }
+        
+        initializeApp();
+
+        topicList.querySelectorAll('li').forEach(li => {
+            li.addEventListener('click', (e) => {
+                const topicId = e.currentTarget.dataset.topicId;
+                if(window.location.hash !== `#${topicId}`) { 
+                    window.location.hash = topicId;
+                }
+            });
+        });
+        
+        window.addEventListener('hashchange', () => {
+            const hash = window.location.hash.substring(1);
+            if (currentSelectedTopicId !== hash) { 
+                const topicFromHash = seleniumTopics.find(t => t.id === hash);
+                if (topicFromHash) {
+                    displayTopic(topicFromHash.id);
+                } else if (seleniumTopics.length > 0 && seleniumTopics[0].id) {
+                    displayTopic(seleniumTopics[0].id);
+                    window.location.hash = seleniumTopics[0].id;
+                } else {
+                    displayWelcomeMessage();
+                }
+            }
+        });
+
+    </script>
+<script type="module" src="/index.tsx"></script>
+</body>
+</html>
